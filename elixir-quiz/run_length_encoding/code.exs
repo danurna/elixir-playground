@@ -1,7 +1,6 @@
 defmodule RunLengthEncoding do
   def encode(s) when is_binary(s) do 
-    s
-      |> String.to_charlist 
+    String.to_charlist(s)
       |> Enum.reduce([], &(reducer(&1, &2)))
       |> Enum.reverse
       |> convert
