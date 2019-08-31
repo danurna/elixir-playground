@@ -1,7 +1,15 @@
 defmodule RunLengthEncoding do
   def encode(s) when is_binary(s) do 
     s
-  end
+      |> String.to_charlist 
+      |> Enum.reduce(%{}, 
+        fn char, map -> 
+          case Map.get(map, char, :not_found) do 
+            :not_found -> Map.put(map, char, 1)
+            count -> Map.put(map, char, count + 1)
+          end
+        end)
+  end  
 end 
 
 ExUnit.start
@@ -26,5 +34,5 @@ defmodule RunLengthEncodingTests do
   end
 end
 
-RunLengthEncoding.encode("DDDDDAAAAAAIJJJWWKKKMMMMMPPP")
+RunLengthEncoding.encode("JJJTTWPPMMMMYYYYYYYYYVVVVVV")
   |> IO.puts
