@@ -2,14 +2,33 @@ defmodule RunLengthEncoding do
   def encode(s) when is_binary(s) do 
     s
       |> String.to_charlist 
-      |> Enum.reduce(%{}, 
-        fn char, map -> 
-          case Map.get(map, char, :not_found) do 
-            :not_found -> Map.put(map, char, 1)
-            count -> Map.put(map, char, count + 1)
-          end
-        end)
-  end  
+      |> Enum.reduce([], &(reducer(&1, &2)))
+      |> Enum.reverse
+      |> convert
+  end 
+
+  defp reducer(char, []) do
+    [{char, 1}]
+  end
+
+  defp reducer(char, [{k, v} | tail]) do
+    cond do 
+      char == k -> [{k, v + 1} | tail]
+      true -> [{char, 1} | [{k, v} | tail]]
+    end 
+  end
+
+  defp convert({k, v}) do 
+    Integer.to_string(v) <> <<k>>
+  end
+
+  defp convert([]) do 
+    "" 
+  end
+
+  defp convert([head | tail]) do
+    convert(head) <> convert(tail)
+  end
 end 
 
 ExUnit.start
