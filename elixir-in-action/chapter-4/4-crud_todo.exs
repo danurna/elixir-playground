@@ -40,10 +40,11 @@ defmodule TodoListTests do
   test "Multiple items added can be retrieved" do 
     todo_list = TodoList.new() 
         |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Say hi"})
-        |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Say hi again"})
+        |> TodoList.add_entry(%{date: ~D[2018-01-02], title: "Say hi again"})
+        |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Don't say hi"})
     assert TodoList.entries(todo_list, ~D[2018-01-01]) == [
       %{date: ~D[2018-01-01], id: 1, title: "Say hi"},
-      %{date: ~D[2018-01-01], id: 2, title: "Say hi again"}
+      %{date: ~D[2018-01-01], id: 3, title: "Don't say hi"}
     ]
   end 
 end
