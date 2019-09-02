@@ -28,7 +28,8 @@ defmodule TodoList do
       :error -> 
         todo_list
       {:ok, old_entry} ->
-        new_entry = updater_fun.(old_entry)
+        old_entry_id = old_entry.id
+        new_entry = %{id: ^old_entry_id} = updater_fun.(old_entry)
         new_entries = Map.put(todo_list.entries, new_entry.id, new_entry) 
         %TodoList{todo_list | entries: new_entries}
     end
@@ -62,6 +63,14 @@ defmodule TodoListTests do
         |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Say hi"})
         |> TodoList.update_entry(1, &Map.put(&1, :title, "Say bye"))
     assert TodoList.entries(todo_list, ~D[2018-01-01]) == [%{date: ~D[2018-01-01], id: 1, title: "Say bye"}]
+  end 
+  
+  test "Item update modifiying ID produces an error" do
+    todo_list = TodoList.new() 
+        |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Say hi"})
+    assert_raise MatchError, fn ->
+      TodoList.update_entry(todo_list, 1, &Map.put(&1, :id, 3))
+    end
   end 
 end
 
