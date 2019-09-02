@@ -34,6 +34,11 @@ defmodule TodoList do
         %TodoList{todo_list | entries: new_entries}
     end
   end 
+
+  def delete_entry(todo_list, entry_id) do 
+    new_entries = Map.delete(todo_list.entries, entry_id)
+    %TodoList{todo_list | entries: new_entries}
+  end
 end
 
 ExUnit.start
@@ -71,6 +76,14 @@ defmodule TodoListTests do
     assert_raise MatchError, fn ->
       TodoList.update_entry(todo_list, 1, &Map.put(&1, :id, 3))
     end
+  end 
+
+  test "Item added can be deleted" do 
+    todo_list = TodoList.new() 
+        |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Say hi"})
+        |> TodoList.add_entry(%{date: ~D[2018-01-01], title: "Say hi again"})
+        |> TodoList.delete_entry(2)
+    assert TodoList.entries(todo_list, ~D[2018-01-01]) == [%{date: ~D[2018-01-01], id: 1, title: "Say hi"}]
   end 
 end
 
