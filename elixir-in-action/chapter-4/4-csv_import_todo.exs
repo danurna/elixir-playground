@@ -1,7 +1,15 @@
 defmodule TodoList do
   defstruct auto_id: 1, entries: %{}
   
-  def new(), do: %TodoList{}
+  def new(entries \\ []) do 
+    Enum.reduce(
+      entries,
+      %TodoList{},
+      fn entry, todo_list_acc -> 
+        add_entry(todo_list_acc, entry)
+      end
+    )
+  end
 
   def add_entry(todo_list, entry) do 
     entry = Map.put(entry, :id, todo_list.auto_id)
@@ -54,7 +62,13 @@ defmodule TodoList.CsvImporter do
         {{year, month, day}, Enum.at(tail, 0)}
       end
     )
-    |> Enum.to_list()
+    |> Enum.map(
+      fn {{year, month, day}, title} -> 
+        {:ok, date} = Date.new(year, month, day)
+        %{date: date, title: title}
+      end
+    )
+    |> TodoList.new()
   end 
 
 end
@@ -64,6 +78,18 @@ ExUnit.start
 
 defmodule TodoListTests do
   use ExUnit.Case
+
+  test "Create list from enumerable" do
+    entries = [
+      %{date: ~D[2018-01-01], title: "Alpha"},
+      %{date: ~D[2018-01-01], title: "Gamma"}
+    ]
+    todo_list = TodoList.new(entries)
+    assert TodoList.entries(todo_list, ~D[2018-01-01]) == [
+      %{date: ~D[2018-01-01], id: 1, title: "Alpha"},
+      %{date: ~D[2018-01-01], id: 2, title: "Gamma"}
+    ]
+  end
 
   test "Item added can be retrieved" do 
     todo_list = TodoList.new() 
