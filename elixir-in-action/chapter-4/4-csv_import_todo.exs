@@ -56,10 +56,10 @@ defmodule TodoList.CsvImporter do
     |> Stream.map(&String.replace(&1, "\n", ""))
     |> Stream.map(&String.split(&1, [","]))
     |> Stream.map(
-      fn [head | tail] -> 
-        [year, month, day] = String.split(head, "/") 
+      fn [date, title] -> 
+        [year, month, day] = String.split(date, "/") 
                              |> Enum.map(&String.to_integer(&1))
-        {{year, month, day}, Enum.at(tail, 0)}
+        {{year, month, day}, title}
       end
     )
     |> Enum.map(
