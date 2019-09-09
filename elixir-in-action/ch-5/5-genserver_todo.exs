@@ -82,16 +82,16 @@ defmodule TodoServer do
   end 
 
   # --- Receive
-  def process_message(todo_list, {:add_entry, entry}) do
+  defp process_message(todo_list, {:add_entry, entry}) do
     TodoList.add_entry(todo_list, entry)
   end
  
-  def process_message(todo_list, {:entries, caller, date}) do
+  defp process_message(todo_list, {:entries, caller, date}) do
     send(caller, {:todo_entries, TodoList.entries(todo_list, date)})
     todo_list
   end
   
-  def process_message(todo_list, _) do
+  defp process_message(todo_list, _) do
     todo_list
   end
 end 
@@ -105,7 +105,7 @@ defmodule TodoListTests do
     server_id = TodoServer.start()
     TodoServer.add_entry(server_id, %{date: ~D[2018-01-01], title: "Alpha"})
     assert TodoServer.entries(server_id, ~D[2018-01-01]) == [ 
-      %{date: ~D[2018-01-01], id: 1, title: "Alpha"}
+     %{date: ~D[2018-01-01], id: 1, title: "Alpha"}
     ]
   end
 
