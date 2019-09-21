@@ -3,8 +3,7 @@ defmodule Todo.Server do
 
   @impl GenServer
   def init(name) do
-    send(self(), {:real_init, name})
-    {:ok, nil}
+    {:ok, {name, Todo.Database.get(name) || Todo.List.new()}}
   end
 
   @impl GenServer
@@ -17,11 +16,6 @@ defmodule Todo.Server do
     updated_list = Todo.List.add_entry(list, entry)  
     Todo.Database.store(name, list) 
     {:noreply, {name, updated_list}}
-  end
-
-  @impl GenServer
-  def handle_info({:real_init, name}, _) do
-    {:noreply, {name, Todo.Database.get(name) || Todo.List.new()}}
   end
 
   # --- Interaction
