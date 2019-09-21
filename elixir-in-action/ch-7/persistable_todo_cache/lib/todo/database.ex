@@ -11,18 +11,35 @@ defmodule Todo.Database do
   end
 
   def store(key, data) do 
-    GenServer.cast(__MODULE__, {:store, key, data})
+    key 
+    |> choose_worker()
+    |> Todo.DatabaseWorker.store(key, data)
   end
 
   def get(key) do 
-    GenServer.call(__MODULE__, {:get, key})
+    key
+    |> choose_worker()
+    |> Todo.DatabaseWorker.get(key)
+  end
+
+  defp choose_worker(key) do
+    GenServer.call(__MODULE__, {:choose_worker, key})
   end
 
   @impl GenServer
   def init(_) do
     File.mkdir_p!(@db_folder)
+    {:ok, start_workers()}
+  end
 
-    workers = Enum.reduce(
+  @impl GenServer
+  def handle_call({:choose_worker, key}, _, workers) do
+    worker_key = :erlang.phash2(key, @pool_size)
+    {:reply, Map.get(workers, worker_key), workers} 
+  end
+
+  defp start_workers() do
+    Enum.reduce(
       0..@pool_size-1,
       %{},
       fn index, acc ->
@@ -30,29 +47,6 @@ defmodule Todo.Database do
         Map.put(acc, index, worker_pid)
       end
     )
-    IO.inspect(workers)
-    {:ok, workers}
-  end
-
-  @impl GenServer
-  def handle_cast({:store, key, data}, workers) do
-    worker = choose_worker(workers, key)
-    GenServer.cast(worker, {:store, key, data}) 
-  
-    {:noreply, workers} 
-  end
-  
-  @impl GenServer
-  def handle_call({:get, key}, _, workers) do
-    worker = choose_worker(workers, key)
-    data = GenServer.call(worker, {:get, key})
-    {:reply, data, workers} 
-  end
-
-  defp choose_worker(workers, key) do
-    worker_index = :erlang.phash2(key, @pool_size) 
-    IO.inspect("Choosing #{worker_index} for #{key}")
-    Map.get(workers, worker_index) 
   end
 end
 
@@ -78,8 +72,6 @@ defmodule Todo.DatabaseWorker do
 
   @impl GenServer
   def handle_cast({:store, key, data}, db_folder) do
-    IO.inspect(self())
-    IO.inspect("Storing #{key}")
     key
     |> file_name(db_folder)
     |> File.write!(:erlang.term_to_binary(data))
@@ -89,8 +81,6 @@ defmodule Todo.DatabaseWorker do
   
   @impl GenServer
   def handle_call({:get, key}, _, db_folder) do
-    IO.inspect(self())
-    IO.inspect("Reading #{key}")
     raw_data = key 
       |> file_name(db_folder)
       |> File.read()
