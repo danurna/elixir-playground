@@ -12,7 +12,7 @@ defmodule Todo.Cache do
 
   @impl GenServer
   def init(_) do
-    Todo.Database.start()
+    Todo.Database.start_link()
     {:ok, %{}}
   end
 
@@ -23,7 +23,7 @@ defmodule Todo.Cache do
         {:reply, server, todo_servers}
       
       :error -> 
-        {:ok, new_server} = Todo.Server.start(todo_list_name)
+        {:ok, new_server} = Todo.Server.start_link(todo_list_name)
         todo_servers = Map.put(todo_servers, todo_list_name, new_server)
         
         {

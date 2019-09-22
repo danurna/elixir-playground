@@ -19,9 +19,9 @@ defmodule Todo.Server do
   end
 
   # --- Interaction
-  def start(list_name) do
+  def start_link(list_name) do
     IO.puts("Starting server")
-    GenServer.start(__MODULE__, list_name)
+    GenServer.start_link(__MODULE__, list_name)
   end
   
   def add_entry(todo_server, entry) do
