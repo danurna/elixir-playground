@@ -21,19 +21,19 @@ defmodule Todo.Server do
   # --- Interaction
   def start_link(list_name) do
     IO.puts("Starting server for #{list_name}")
-    GenServer.start_link(__MODULE__, list_name, name: via_tuple(list_name))
+    GenServer.start_link(__MODULE__, list_name, name: via_tuple(list_name)) 
   end
   
   defp via_tuple(id) do
     Todo.ProcessRegistry.via_tuple({__MODULE__, id})
   end
   
-  def add_entry(list_name, entry) do
-    GenServer.cast(via_tuple(list_name), {:add_entry, entry})
+  def add_entry(server_pid, entry) do
+    GenServer.cast(server_pid, {:add_entry, entry})
   end
 
-  def entries(list_name, date) do 
-    GenServer.call(via_tuple(list_name), {:entries, date})
+  def entries(server_pid, date) do 
+    GenServer.call(server_pid, {:entries, date})
   end
 end 
 
