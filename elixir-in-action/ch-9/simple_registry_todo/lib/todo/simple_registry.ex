@@ -10,26 +10,32 @@ defmodule SimpleRegistry do
   end
 
   def whereis(name) do 
-    GenServer.call(:simple_registry, {:whereis, name})
+    case lookup(name) do
+      {:ok, pid} -> pid
+      :error -> nil
+    end
   end
-
-  @impl GenServer
-  def init(_) do
-    {:ok, %{}}
-  end
-
-  @impl GenServer
-  def handle_call({:register, name, pid}, _, registry) do
-    case Map.fetch(registry, name) do
-      {:ok, _} -> {:reply, :error, registry}
-      :error -> 
-        new_registry = Map.put(registry, name, pid) 
-        {:reply, :ok, new_registry} 
+  
+  defp lookup(name) do
+    case :ets.lookup(__MODULE__, name) do
+      [{^name, pid}] -> {:ok, pid}
+      [] -> :error
     end
   end
 
   @impl GenServer
-  def handle_call({:whereis, name}, _, registry) do
-    {:reply, registry[name], registry}
+  def init(_) do
+    :ets.new(__MODULE__, [:named_table, :public, write_concurrency: true])
+    {:ok, nil}
+  end
+
+  @impl GenServer
+  def handle_call({:register, key, pid}, _, registry) do
+    case lookup(key) do
+      {:ok, _} -> {:reply, :error, registry}
+      :error -> 
+        :ets.insert(__MODULE__, {key, pid})
+        {:reply, :ok, registry} 
+    end
   end
 end
