@@ -1,41 +1,37 @@
 defmodule SimpleRegistry do
   use GenServer
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: :simple_registry)
+  def start_link do
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  def register(name) do
-     GenServer.call(:simple_registry, {:register, name, self()})
-  end
-
-  def whereis(name) do 
-    case lookup(name) do
-      {:ok, pid} -> pid
-      :error -> nil
+  def register(key) do
+    Process.link(Process.whereis(__MODULE__))
+    
+    if :ets.insert_new(__MODULE__, {key, self()}) do 
+      :ok
+    else
+      :error
     end
   end
-  
-  defp lookup(name) do
-    case :ets.lookup(__MODULE__, name) do
-      [{^name, pid}] -> {:ok, pid}
-      [] -> :error
+
+  def whereis(key) do 
+    case :ets.lookup(__MODULE__, key) do
+      [{^key, pid}] -> pid
+      [] -> nil
     end
   end
 
   @impl GenServer
   def init(_) do
-    :ets.new(__MODULE__, [:named_table, :public, write_concurrency: true])
+    Process.flag(:trap_exit, true)
+    :ets.new(__MODULE__, [:named_table, :public, read_concurrency: true, write_concurrency: true])
     {:ok, nil}
   end
 
   @impl GenServer
-  def handle_call({:register, key, pid}, _, registry) do
-    case lookup(key) do
-      {:ok, _} -> {:reply, :error, registry}
-      :error -> 
-        :ets.insert(__MODULE__, {key, pid})
-        {:reply, :ok, registry} 
-    end
+  def handle_info({:EXIT, pid, _reason}, state) do
+    :ets.match_delete(__MODULE__, {:_, pid})
+    {:noreply, state} 
   end
 end
