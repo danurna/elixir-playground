@@ -3,9 +3,10 @@ defmodule Todo.Application do
 
   def start(_type, _args) do
     children = [
-        Todo.ProcessRegistry,
-        Todo.Database,
-        Todo.Cache
+      Todo.ProcessRegistry,
+      Todo.Database,
+      Todo.Cache,
+      Todo.Web
     ]
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
