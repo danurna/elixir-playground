@@ -1,11 +1,6 @@
 defmodule TodoServerTests do
   use ExUnit.Case
 
-  setup_all do
-    Todo.System.start_link()
-    {:ok, context: nil}
-  end
-
   test "Write and read from server" do
     {:ok, pid} = Todo.Server.start_link("AliceList")
     Todo.Server.add_entry(pid, %{date: ~D[2018-01-01], title: "Alpha"})
