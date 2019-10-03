@@ -12,7 +12,6 @@ defmodule Todo.Web do
     )
   end
 
-
   post "/add_entry" do 
     conn = Plug.Conn.fetch_query_params(conn)
     list_name = Map.fetch!(conn.params, "list")
@@ -48,4 +47,7 @@ defmodule Todo.Web do
     |> Plug.Conn.send_resp(200, formatted_entries)
   end
 
+  match _ do
+    send_resp(conn, 404, "oops")
+  end
 end
