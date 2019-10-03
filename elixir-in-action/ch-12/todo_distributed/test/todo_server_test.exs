@@ -12,7 +12,7 @@ defmodule TodoServerTests do
   test "Read from persisted list" do
     expected_entry = %{date: ~D[2018-01-01], title: "Alpha"} 
     list = Todo.List.new([expected_entry])
-    File.write!("./persist/alice", :erlang.term_to_binary(list))
+    File.write!("./test_persist/nonode/alice", :erlang.term_to_binary(list))
 
     {:ok, pid} = Todo.Server.start_link("alice")
     entries = Todo.Server.entries(pid, ~D[2018-01-01]) 
