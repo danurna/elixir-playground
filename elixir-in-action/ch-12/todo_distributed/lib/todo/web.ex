@@ -12,6 +12,7 @@ defmodule Todo.Web do
     )
   end
 
+  # curl -d "" http://192.168.1.112:5454/add_entry\?list\=sophie\&date\=2018-12-20\&title\=Yolo
   post "/add_entry" do 
     conn = Plug.Conn.fetch_query_params(conn)
     list_name = Map.fetch!(conn.params, "list")
@@ -27,6 +28,7 @@ defmodule Todo.Web do
     |> Plug.Conn.send_resp(200, "OK")
   end
 
+  # curl http://192.168.1.112:5454/entries\?list\=sophie\&date\=2018-12-20
   get "/entries" do
     conn = Plug.Conn.fetch_query_params(conn)
     list_name = Map.fetch!(conn.params, "list")
