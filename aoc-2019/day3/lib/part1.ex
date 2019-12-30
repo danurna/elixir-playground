@@ -1,6 +1,4 @@
 defmodule Part1 do
-  @start_coords %{x: 0, y: 0}
-
   def run() do
     AOCHelper.read_input()
     |> find_closest_intersection()
@@ -8,31 +6,83 @@ defmodule Part1 do
 
   def find_closest_intersection(wires) do
     wires
-    |> draw_wires(%{}, @start_coords)
-    |> find_smallest_distance(@start_coords)
+    |> GridHelper.draw_wires(%{})
+    |> find_smallest_distance()
   end
 
-  defp draw_wires(wires, grid, start_coords) do
+  defp find_smallest_distance(grid) do
+    distances =
+      GridHelper.crossings(grid)
+      |> Enum.map(fn {{x, y}, _} ->
+        abs(x) + abs(y)
+      end)
+
+    distances
+    |> Enum.sort()
+    |> hd()
+  end
+end
+
+defmodule Part2 do
+  def run() do
+    AOCHelper.read_input()
+    |> draw_and_find_intersection()
+  end
+
+  def draw_and_find_intersection(wires) do
+    wires
+    |> GridHelper.draw_wires(%{})
+    |> find_minimal_wire_length_intersection()
+  end
+
+  def find_minimal_wire_length_intersection(grid) do
+    distances =
+      GridHelper.crossings(grid)
+      |> Enum.map(fn {_, entry} ->
+        entry.lengths
+        |> Map.values
+        |> Enum.sum
+      end)
+
+    distances
+    |> Enum.sort()
+    |> hd()
+  end
+end
+
+defmodule GridHelper do
+  def draw_wires(wires, grid) do
     wires
     |> Enum.reduce(grid, fn instructions, grid ->
-      draw_wire(instructions, grid, start_coords)
+      draw_wire(instructions, grid)
     end)
   end
 
-  defp draw_wire(instructions, grid, from) do
-    IO.inspect(instructions, label: "draw_wire")
-
+  defp draw_wire(instructions, grid) do
+    start_point = %{x: 0, y: 0}
     line_id = AOCHelper.random_string(3)
 
     instructions
-    |> Enum.reduce(%{point: from, grid: grid}, fn instruction, acc ->
-      {end_point, updated_grid} = draw_line(acc.grid, acc.point, instruction, line_id)
-      %{point: end_point, grid: updated_grid}
+    |> Enum.reduce(%{point: start_point, grid: grid, wire_length: 1}, fn instruction, acc ->
+      {end_point, updated_grid, updated_wire_length} =
+        draw_line(
+          acc.grid,
+          acc.point,
+          instruction,
+          line_id,
+          acc.wire_length
+        )
+
+      %{
+        point: end_point,
+        grid: updated_grid,
+        wire_length: updated_wire_length
+      }
     end)
     |> Map.fetch!(:grid)
   end
 
-  def draw_line(grid, from, instruction, line_id) do
+  defp draw_line(grid, from, instruction, line_id, wire_length) do
     points =
       case instruction do
         "U" <> l ->
@@ -49,39 +99,36 @@ defmodule Part1 do
           for x <- from.x-1..from.x-l, do: {x, from.y}
       end
 
-    updated_grid =
+    updated =
       points
-      |> Enum.reduce(grid, fn p, acc -> add_point(acc, p, line_id) end)
+      |> Enum.reduce(%{grid: grid, wire_length: wire_length}, fn p, acc ->
+        {updated_grid, updated_wire_length} = add_point(acc.grid, p, line_id, acc.wire_length)
+        %{grid: updated_grid, wire_length: updated_wire_length}
+      end)
 
     {x, y} = points |> Enum.reverse |> hd
-    {%{x: x, y: y}, updated_grid}
+    {%{x: x, y: y}, updated.grid, updated.wire_length}
   end
 
-  defp add_point(grid, point, line_id) do
+  defp add_point(grid, point, line_id, wire_length) do
+    grid_entry = Map.get(grid, point, %{wires: MapSet.new(), lengths: %{}})
     updated_wires =
-      Map.get(grid, point, MapSet.new())
+      grid_entry.wires
       |> MapSet.put(line_id)
 
-    Map.put(grid, point, updated_wires)
+    updated_length =
+      grid_entry.lengths
+      |> Map.put(line_id, wire_length)
+
+    grid = Map.put(grid, point, %{wires: updated_wires, lengths: updated_length})
+    {grid, wire_length + 1}
   end
 
-  defp find_smallest_distance(grid, start_coords) do
-    # Find coordinates with two lines crossing
-    crossings =
-      grid
-      |> Enum.filter(fn {_, wires} ->
-        length(MapSet.to_list(wires)) == 2
-      end)
-
-    distances =
-      crossings
-      |> Enum.map(fn {{x, y}, _} ->
-        abs(start_coords.x - x) + abs(start_coords.y - y)
-      end)
-
-    distances
-    |> Enum.sort()
-    |> hd()
+  def crossings(grid) do
+    grid
+    |> Enum.filter(fn {_, entry} ->
+      length(MapSet.to_list(entry.wires)) == 2
+    end)
   end
 end
 
@@ -91,13 +138,6 @@ defmodule AOCHelper do
     |> File.read!()
     |> String.split("\n")
     |> Enum.map(&(String.split(&1, ",")))
-  end
-
-  def create_grid(width, height) do
-    coordinates = for x <- 0..width, y <- 0..height, do: {x, y}
-
-    coordinates
-    |> Enum.into(%{}, fn c -> {c, []} end)
   end
 
   def random_string(length) do
