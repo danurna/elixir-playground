@@ -1,7 +1,7 @@
 defmodule Part1 do
   def run() do
     AOCHelper.read_input()
-    |> compute()
+    |> TreeCounter.eval()
   end
 
   def debug_sample() do
@@ -18,37 +18,27 @@ defmodule Part1 do
       "#...##....#",
       ".#..#...#.#",
     ]
-    |> compute
+    |> TreeCounter.eval()
   end
 
   def debug_run() do
     ["..#.", "..#.", "#..#"]
-    |> compute
+    |> TreeCounter.eval()
   end
+end
 
-  def compute(lines) do
-    _ = length(lines)
-    line_width = hd(lines) |> String.length()
+defmodule TreeCounter do
+  def eval(list), do: eval(list, 1, 0, %{x: 0, y: 0})
+  def eval(list, step_width), do: eval(list, step_width, 0, %{x: 0, y: 0})
+  def eval([], _step_width, sum, _pointer), do: sum
+  def eval([head | tail], step_width, sum, p), do: eval(tail, step_width, sum + tree_count(head, p), %{x: p.x + step_width, y: p.y + 1})
 
-    step = %{right: 3, down: 1}
-    start_pointer = %{x: 0, y: 0}
-
-    index_lines = Enum.with_index(lines)
-    Enum.reduce(index_lines, %{pointer: start_pointer, count: 0}, fn {line, idx}, state ->
-      norm_x = rem(state.pointer.x, line_width)
-      updated_count =
-        case String.at(line, norm_x) do
-          "#" ->  state.count + 1
-          _ -> state.count
-        end
-
-      updated_pointer = %{x: state.pointer.x + step.right, y: state.pointer.y + 1}
-
-      %{
-        pointer: updated_pointer,
-        count: updated_count
-      }
-    end)
+  def tree_count(line, pointer) when is_binary(line) do
+    norm_x = pointer.x |> rem(String.length(line))
+    case String.at(line, norm_x) do
+      "#" -> 1
+      _ -> 0
+    end
   end
 end
 
@@ -84,33 +74,14 @@ defmodule Part2 do
   end
 
   def compute(lines, slopes) do
-    _ = length(lines)
-    line_width = hd(lines) |> String.length()
-
-    Enum.reduce(slopes, %{sum: 1}, fn slope, state ->
-
-      filtered_lines = Enum.take_every(lines, slope.down)
-      slope_result =
-        Enum.reduce(filtered_lines, %{pointer: %{x: 0, y: 0}, count: 0}, fn line, state ->
-          norm_x = rem(state.pointer.x, line_width)
-          updated_count =
-            case String.at(line, norm_x) do
-              "#" ->  state.count + 1
-              _ -> state.count
-            end
-
-          updated_pointer = %{x: state.pointer.x + slope.right, y: state.pointer.y + slope.down}
-
-          %{
-            pointer: updated_pointer,
-            count: updated_count
-          }
-        end)
-
-      %{
-        sum: state.sum * slope_result.count
-      }
+    slopes
+    |> Enum.map(fn slope ->
+      %{step_width: slope.right, lines: Enum.take_every(lines, slope.down)}
     end)
+    |> Enum.map(fn t ->
+      TreeCounter.eval(t.lines, t.step_width)
+    end)
+    |> Enum.reduce(&*/2)
   end
 end
 
