@@ -6,7 +6,7 @@ defmodule Day8 do
 
   def run_part2() do
     AOCHelper.read_input()
-    |> Executor.supervised_execution()
+    |> Executor.mutating_execution()
   end
 
   def debug_sample() do
@@ -21,36 +21,72 @@ defmodule Day8 do
       "jmp -4",
       "acc +6"
     ]
-    |> Executor.supervised_execution()
+    |> Executor.mutating_execution()
   end
 end
 
 defmodule Executor do
+  # Part 1
   def supervised_execution(raw_instructions) do
     raw_instructions
     |> InstructionParser.build_instructions()
     |> execute_until_repeat(%{pointer: 0, acc: 0})
   end
 
+  # Part 2
+  def mutating_execution(raw_instructions) do
+    raw_instructions
+    |> InstructionParser.build_instructions()
+    |> create_mutated_instructions()
+    |> Stream.map(&(execute_until_repeat(&1, %{pointer: 0, acc: 0})))
+    |> Enum.filter(fn result ->
+      case result do
+        {:terminated, _} -> false
+        _ -> true
+      end
+    end)
+  end
+
+  # Creates a new collection of instructions
+  # for every :nop or :jmp found with the appropriate replacement.
+  defp create_mutated_instructions(instructions) do
+    instructions
+    |> Stream.with_index()
+    |> Enum.reduce(MapSet.new([instructions]), fn {instr, idx}, acc ->
+      case instr.op do
+        :nop ->
+          instructions
+          |> List.update_at(idx, &(Map.put(&1, :op, :jmp)))
+          |> (&(MapSet.new([&1]))).()
+          |> (&(MapSet.union(acc, &1))).()
+        :jmp ->
+          instructions
+          |> List.update_at(idx, &(Map.put(&1, :op, :nop)))
+          |> (&(MapSet.new([&1]))).()
+          |> (&(MapSet.union(acc, &1))).()
+        _ ->
+          acc
+      end
+    end)
+  end
+
   defp execute_until_repeat(instructions, state) do
-    current_pointer = state.pointer
     current_instr = Enum.at(instructions, state.pointer)
 
-    case current_instr.execution_count do
-      1 -> {current_instr, state}
-      0 ->
-        updated_instructions =
-          instructions
-          |> Enum.with_index()
-          |> Enum.map(fn {instr, idx} ->
-            case idx do
-              ^current_pointer -> Map.put(instr, :execution_count, instr.execution_count + 1)
-              _ -> instr
-            end
-          end)
+    termination_pointer = Enum.count(instructions)
+    case state.pointer do
+      ^termination_pointer -> state
+      current_pointer ->
+        case current_instr.execution_count do
+          1 -> {:terminated, state}
+          _ ->
+            updated_instructions =
+              instructions
+              |> List.update_at(current_pointer, &(Map.put(&1, :execution_count, &1.execution_count + 1)))
 
-        updated_state = execute(current_instr.op, current_instr.arg, state)
-        execute_until_repeat(updated_instructions, updated_state)
+            updated_state = execute(current_instr.op, current_instr.arg, state)
+            execute_until_repeat(updated_instructions, updated_state)
+        end
     end
   end
 
