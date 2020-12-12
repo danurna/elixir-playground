@@ -1,12 +1,12 @@
 defmodule Day12 do
   def run_part1() do
     AOCHelper.read_input()
-    |> Solution.run()
+    |> SolutionPart1.run()
   end
 
   def run_part2() do
     AOCHelper.read_input()
-    |> Solution.run()
+    |> SolutionPart2.run()
   end
 
   def debug_sample() do
@@ -17,11 +17,77 @@ defmodule Day12 do
       "R90",
       "F11"
     ]
-    |> Solution.run()
+    |> SolutionPart2.run()
   end
 end
 
-defmodule Solution do
+defmodule SolutionPart2 do
+  def run(input) do
+    input
+    |> Parser.parse
+    |> move()
+    |> (fn result ->
+      %{:x => x, :y => y} = result
+      abs(x) + abs(y)
+    end).()
+  end
+
+  defp move(instr), do: move(instr, %{x: 0, y: 0}, %{delta_x: 10, delta_y: 1})
+  defp move([], pos, _waypoint), do: pos
+  defp move([head | tail], pos, waypoint) do
+    case head do
+      {:turn_left, _} ->
+        updated_waypoint = turn_waypoint(head, waypoint)
+        move(tail, pos, updated_waypoint)
+      {:turn_right, _} ->
+        updated_waypoint = turn_waypoint(head, waypoint)
+        move(tail, pos, updated_waypoint)
+      {:forward, val} ->
+        updated_pos = move_to_waypoint(val, pos, waypoint)
+        move(tail, updated_pos, waypoint)
+      instr ->
+        updated_waypoint = move_waypoint(instr, waypoint)
+        move(tail, pos, updated_waypoint)
+    end
+  end
+
+  defp turn_waypoint(instr, waypoint) do
+    degrees =
+      case instr do
+        {:turn_left, deg} -> deg
+        {:turn_right, deg} -> -deg
+      end
+
+    {x, y} = turn_vector({waypoint.delta_x, waypoint.delta_y}, degrees)
+    %{delta_x: round(x), delta_y: round(y)}
+  end
+
+  defp turn_vector({x, y}, deg) do
+    rad = deg * :math.pi() / 180
+    {
+      x*:math.cos(rad) - y*:math.sin(rad),
+      x*:math.sin(rad) + y*:math.cos(rad)
+    }
+  end
+
+  defp move_waypoint(instr, wp) do
+    case instr do
+      {:north, val} -> %{ wp | delta_y: wp.delta_y + val}
+      {:south, val} -> %{ wp | delta_y: wp.delta_y - val}
+      {:east, val} -> %{ wp | delta_x: wp.delta_x + val}
+      {:west, val} -> %{ wp | delta_x: wp.delta_x - val}
+    end
+  end
+
+  defp move_to_waypoint(multiplier, pos, waypoint) do
+    %{
+      x: pos.x + (waypoint.delta_x * multiplier),
+      y: pos.y + (waypoint.delta_y * multiplier)
+    }
+  end
+end
+
+defmodule SolutionPart1 do
   def run(input) do
     input
     |> Parser.parse
