@@ -24,7 +24,7 @@ defmodule SolutionPart1 do
       |> String.split(",")
       |> Enum.map(&String.to_integer/1)
 
-    Enum.count(initial_numbers)+1..30000000
+    Enum.count(initial_numbers)+1..2020
     |> Enum.reduce(Enum.reverse(initial_numbers), fn iteration, seen_elems ->
       [{last_elem_v, last_elem_idx} | other_elems] =
         seen_elems
@@ -41,7 +41,35 @@ end
 
 defmodule SolutionPart2 do
   def run(input) do
-    input
+    initial_numbers =
+      input
+      |> String.split(",")
+      |> Enum.map(&String.to_integer/1)
+
+    indexed_numbers =
+      initial_numbers
+      |> Enum.with_index()
+      |> Enum.reverse()
+
+    initial_state =
+      indexed_numbers
+      |> tl
+      |> Enum.into(%{})
+
+    {start_elem, _} = hd(indexed_numbers)
+
+    Enum.count(initial_numbers)+1..30000000
+    |> Enum.reduce({start_elem, initial_state}, fn iteration, {last_spoken, number_to_last_idx_map} ->
+      cur_idx = iteration - 1
+      case Map.get(number_to_last_idx_map, last_spoken, :not_found) do
+        :not_found ->
+          {0, Map.put(number_to_last_idx_map, last_spoken, cur_idx - 1)}
+        last_idx ->
+          new_spoken = abs(cur_idx - 1 - last_idx)
+          {new_spoken, Map.put(number_to_last_idx_map, last_spoken, cur_idx - 1)}
+      end
+    end)
+    |> (fn {last_spoken, _} -> last_spoken end).()
   end
 end
 
