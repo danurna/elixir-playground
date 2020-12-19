@@ -12,42 +12,36 @@ defmodule Day15 do
   end
 
   def debug_sample() do
-    "1,3,2"
+    "0,3,6"
     |> SolutionPart2.run()
   end
 end
 
 defmodule SolutionPart1 do
   def run(input) do
-    input
-  end
-end
-
-defmodule SolutionPart2 do
-  def run(input) do
     initial_numbers =
       input
       |> String.split(",")
       |> Enum.map(&String.to_integer/1)
 
-    initial_state =
-      initial_numbers
-      |> Enum.map(fn x -> {x, :new} end)
-      |> Enum.into(%{})
-      |> (fn map ->
-        %{last_elem: List.last(initial_numbers), last_occurences: map}
-      end).()
-
-    start = Enum.count(initial_numbers) - 1
-    [start..2020]
-    |> Enum.reduce(initial_state, fn iteration, %{:last_elem => last_elem, :last_occurences => last_occurences} ->
-      case Map.get(last_occurences, last_elem, :unseen) do
-        :unseen ->
-          elem = 0
-          %{last_elem: elem, Map.put(last_occurences, elem, iteration)}
-
-      end
+    Enum.count(initial_numbers)+1..30000000
+    |> Enum.reduce(Enum.reverse(initial_numbers), fn iteration, seen_elems ->
+      [{last_elem_v, last_elem_idx} | other_elems] =
+        seen_elems
+        |> Enum.with_index()
+      {_, last_occur_idx} = Enum.find(other_elems, {last_elem_v, last_elem_idx}, fn {v, _} ->
+        v == last_elem_v
+      end)
+      spoken = abs(last_elem_idx - last_occur_idx)
+      [spoken | seen_elems]
     end)
+    |> hd
+  end
+end
+
+defmodule SolutionPart2 do
+  def run(input) do
+    input
   end
 end
 
